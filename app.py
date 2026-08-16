@@ -17,7 +17,13 @@ MAX_VOICE_DURATION = 5
 
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
-    logger.info("Received voice message")
+    logger.info("Received standard voice message")
+    if message.voice.duration <= MAX_VOICE_DURATION:
+        bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
+
+@bot.business_message_handler(content_types=['voice'])
+def handle_business_voice(message):
+    logger.info("Received business voice message")
     if message.voice.duration <= MAX_VOICE_DURATION:
         bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
 
@@ -33,7 +39,10 @@ def webhook():
 @app.route('/set_webhook', methods=['GET', 'POST'])
 def set_webhook():
     bot.remove_webhook()
-    status = bot.set_webhook(url=f"{WEBHOOK_HOST}/webhook")
+    status = bot.set_webhook(
+        url=f"{WEBHOOK_HOST}/webhook",
+        allowed_updates=["message", "business_message"]
+    )
     if status:
         logger.info("Webhook setup succeeded")
         return "Webhook setup succeeded", 200
