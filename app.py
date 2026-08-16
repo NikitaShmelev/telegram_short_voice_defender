@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 MAX_VOICE_DURATION = 5
 
-@bot.business_message_handler(content_types=['voice'])
+@bot.business_message_handler(func=lambda message: message.content_type == 'voice')
 def handle_business_voice(message):
     logger.info("Received business voice message")
     if message.voice.duration <= MAX_VOICE_DURATION:
@@ -26,7 +26,7 @@ def handle_business_voice(message):
         )
         logger.info("Successfully replied to business voice message")
 
-@bot.message_handler(content_types=['voice'])
+@bot.message_handler(func=lambda message: message.content_type == 'voice')
 def handle_regular_voice(message):
     logger.info("Received regular voice message")
     if message.voice.duration <= MAX_VOICE_DURATION:
