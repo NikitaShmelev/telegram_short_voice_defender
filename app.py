@@ -14,35 +14,33 @@ app = Flask(__name__)
 
 MAX_VOICE_DURATION = 5
 
-@bot.business_message_handler(func=lambda message: True)
-def handle_business_all(message):
-    logger.info(f"Received business message. Content type: {message.content_type}")
-    
-    if message.content_type == 'voice':
-        logger.info(f"Business voice duration: {message.voice.duration}s")
-        if message.voice.duration <= MAX_VOICE_DURATION:
-            bot.reply_to(
-                message, 
-                "Please write text, such short voice messages are inconvenient to listen to.",
-                business_connection_id=message.business_connection_id
-            )
-            logger.info("Successfully replied to business voice message")
+@bot.business_message_handler(content_types=['voice'])
+def handle_business_voice(message):
+    logger.info("Received business voice message")
+    if message.voice.duration <= MAX_VOICE_DURATION:
+        bot.send_message(
+            chat_id=message.chat.id,
+            text="Please write text, such short voice messages are inconvenient to listen to.",
+            reply_to_message_id=message.message_id,
+            business_connection_id=message.business_connection_id
+        )
+        logger.info("Successfully replied to business voice message")
 
-@bot.message_handler(func=lambda message: True)
-def handle_regular_all(message):
-    logger.info(f"Received regular message. Content type: {message.content_type}")
-    
-    if message.content_type == 'voice':
-        logger.info(f"Regular voice duration: {message.voice.duration}s")
-        if message.voice.duration <= MAX_VOICE_DURATION:
-            bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
-            logger.info("Successfully replied to regular voice message")
+@bot.message_handler(content_types=['voice'])
+def handle_regular_voice(message):
+    logger.info("Received regular voice message")
+    if message.voice.duration <= MAX_VOICE_DURATION:
+        bot.send_message(
+            chat_id=message.chat.id,
+            text="Please write text, such short voice messages are inconvenient to listen to.",
+            reply_to_message_id=message.message_id
+        )
+        logger.info("Successfully replied to regular voice message")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
-        # This will print the raw JSON from Telegram directly to your Render logs
         logger.info(f"Raw update received: {json_string}") 
         
         update = telebot.types.Update.de_json(json_string)
