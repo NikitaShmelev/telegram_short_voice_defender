@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
 
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
 MAX_VOICE_DURATION = 5
@@ -44,7 +44,10 @@ def webhook():
         logger.info(f"Raw update received: {json_string}") 
         
         update = telebot.types.Update.de_json(json_string)
-        bot.process_new_updates([update])
+        try:
+            bot.process_new_updates([update])
+        except Exception:
+            logger.exception("Error while processing update")
         return '', 200
     return '', 403
 
