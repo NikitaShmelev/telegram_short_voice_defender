@@ -5,7 +5,6 @@ import telebot
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-telebot.logger.setLevel(logging.INFO)
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
@@ -15,22 +14,37 @@ app = Flask(__name__)
 
 MAX_VOICE_DURATION = 5
 
-@bot.message_handler(content_types=['voice'])
-def handle_voice(message):
-    logger.info("Received standard voice message")
-    if message.voice.duration <= MAX_VOICE_DURATION:
-        bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
+@bot.business_message_handler(func=lambda message: True)
+def handle_business_all(message):
+    logger.info(f"Received business message. Content type: {message.content_type}")
+    
+    if message.content_type == 'voice':
+        logger.info(f"Business voice duration: {message.voice.duration}s")
+        if message.voice.duration <= MAX_VOICE_DURATION:
+            bot.reply_to(
+                message, 
+                "Please write text, such short voice messages are inconvenient to listen to.",
+                business_connection_id=message.business_connection_id
+            )
+            logger.info("Successfully replied to business voice message")
 
-@bot.business_message_handler(content_types=['voice'])
-def handle_business_voice(message):
-    logger.info("Received business voice message")
-    if message.voice.duration <= MAX_VOICE_DURATION:
-        bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
+@bot.message_handler(func=lambda message: True)
+def handle_regular_all(message):
+    logger.info(f"Received regular message. Content type: {message.content_type}")
+    
+    if message.content_type == 'voice':
+        logger.info(f"Regular voice duration: {message.voice.duration}s")
+        if message.voice.duration <= MAX_VOICE_DURATION:
+            bot.reply_to(message, "Please write text, such short voice messages are inconvenient to listen to.")
+            logger.info("Successfully replied to regular voice message")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
+        # This will print the raw JSON from Telegram directly to your Render logs
+        logger.info(f"Raw update received: {json_string}") 
+        
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
         return '', 200
@@ -54,12 +68,8 @@ def check_webhook():
     webhook_info = bot.get_webhook_info()
     return jsonify({
         "url": webhook_info.url,
-        "has_custom_certificate": webhook_info.has_custom_certificate,
         "pending_update_count": webhook_info.pending_update_count,
-        "ip_address": webhook_info.ip_address,
-        "last_error_date": webhook_info.last_error_date,
         "last_error_message": webhook_info.last_error_message,
-        "max_connections": webhook_info.max_connections,
         "allowed_updates": webhook_info.allowed_updates
     }), 200
 
